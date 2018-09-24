@@ -65,15 +65,15 @@ module system_top (
 
   inout           gpio_bd,
 
-  input           rx_clk_in,
-  input           rx_frame_in,
-  input   [11:0]  rx_data_in,
-  output          tx_clk_out,
-  output          tx_frame_out,
-  output  [11:0]  tx_data_out,
+  // input           rx_clk_in,
+  // input           rx_frame_in,
+  // input   [11:0]  rx_data_in,
+  // output          tx_clk_out,
+  // output          tx_frame_out,
+  // output  [11:0]  tx_data_out,
 
-  output          enable,
-  output          txnrx,
+  // output          enable,
+  // output          txnrx,
   input           clk_out,
 
   inout           gpio_resetb,
@@ -121,7 +121,7 @@ module system_top (
     .ddr_ras_n (ddr_ras_n),
     .ddr_reset_n (ddr_reset_n),
     .ddr_we_n (ddr_we_n),
-    .enable (enable),
+    // .enable (enable),
     .fixed_io_ddr_vrn (fixed_io_ddr_vrn),
     .fixed_io_ddr_vrp (fixed_io_ddr_vrp),
     .fixed_io_mio (fixed_io_mio),
@@ -145,10 +145,12 @@ module system_top (
     .ps_intr_09 (1'b0),
     .ps_intr_10 (1'b0),
     .ps_intr_11 (1'b0),
+    .ps_intr_12 (1'b0),
+    .ps_intr_13 (1'b0),
     .ps_intr_14 (1'b0),
-    .rx_clk_in (rx_clk_in),
-    .rx_data_in (rx_data_in),
-    .rx_frame_in (rx_frame_in),
+    // .rx_clk_in (rx_clk_in),
+    // .rx_data_in (rx_data_in),
+    // .rx_frame_in (rx_frame_in),
     .spi0_clk_i (1'b0),
     .spi0_clk_o (spi_clk),
     .spi0_csn_0_o (spi_csn),
@@ -157,13 +159,13 @@ module system_top (
     .spi0_csn_i (1'b1),
     .spi0_sdi_i (spi_miso),
     .spi0_sdo_i (1'b0),
-    .spi0_sdo_o (spi_mosi),
-    .tx_clk_out (tx_clk_out),
-    .tx_data_out (tx_data_out),
-    .tx_frame_out (tx_frame_out),
-    .txnrx (txnrx),
-    .up_enable (gpio_o[15]),
-    .up_txnrx (gpio_o[16]));
+    .spi0_sdo_o (spi_mosi));
+    // .tx_clk_out (tx_clk_out),
+    // .tx_data_out (tx_data_out),
+    // .tx_frame_out (tx_frame_out),
+    // .txnrx (txnrx),
+    // .up_enable (gpio_o[15]),
+    // .up_txnrx (gpio_o[16]));
 
 endmodule
 
