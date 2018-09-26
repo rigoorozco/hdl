@@ -158,9 +158,21 @@ proc create_root_design { parentCell } {
   set iic_main [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 iic_main ]
 
   # Create ports
+  set bus_clk [ create_bd_port -dir O bus_clk ]
+  set bus_rst [ create_bd_port -dir O -from 0 -to 0 bus_rst ]
+  set clk_10mhz [ create_bd_port -dir O clk_10mhz ]
+  set clk_40mhz [ create_bd_port -dir O clk_40mhz ]
+  set core_rb_data [ create_bd_port -dir I -from 31 -to 0 core_rb_data ]
+  set core_set_addr [ create_bd_port -dir O -from 7 -to 0 core_set_addr ]
+  set core_set_data [ create_bd_port -dir O -from 31 -to 0 core_set_data ]
+  set core_set_stb [ create_bd_port -dir O core_set_stb ]
   set gpio_i [ create_bd_port -dir I -from 16 -to 0 gpio_i ]
   set gpio_o [ create_bd_port -dir O -from 16 -to 0 gpio_o ]
   set gpio_t [ create_bd_port -dir O -from 16 -to 0 gpio_t ]
+  set h2s_tdata [ create_bd_port -dir O -from 63 -to 0 h2s_tdata ]
+  set h2s_tlast [ create_bd_port -dir O h2s_tlast ]
+  set h2s_tready [ create_bd_port -dir I h2s_tready ]
+  set h2s_tvalid [ create_bd_port -dir O h2s_tvalid ]
   set ps_intr_00 [ create_bd_port -dir I -type intr ps_intr_00 ]
   set ps_intr_01 [ create_bd_port -dir I -type intr ps_intr_01 ]
   set ps_intr_02 [ create_bd_port -dir I -type intr ps_intr_02 ]
@@ -175,7 +187,10 @@ proc create_root_design { parentCell } {
   set ps_intr_11 [ create_bd_port -dir I -type intr ps_intr_11 ]
   set ps_intr_12 [ create_bd_port -dir I ps_intr_12 ]
   set ps_intr_13 [ create_bd_port -dir I ps_intr_13 ]
-  set ps_intr_14 [ create_bd_port -dir I -type intr ps_intr_14 ]
+  set s2h_tdata [ create_bd_port -dir I -from 63 -to 0 s2h_tdata ]
+  set s2h_tlast [ create_bd_port -dir I s2h_tlast ]
+  set s2h_tready [ create_bd_port -dir O s2h_tready ]
+  set s2h_tvalid [ create_bd_port -dir I s2h_tvalid ]
   set spi0_clk_i [ create_bd_port -dir I spi0_clk_i ]
   set spi0_clk_o [ create_bd_port -dir O spi0_clk_o ]
   set spi0_csn_0_o [ create_bd_port -dir O spi0_csn_0_o ]
@@ -185,15 +200,30 @@ proc create_root_design { parentCell } {
   set spi0_sdi_i [ create_bd_port -dir I spi0_sdi_i ]
   set spi0_sdo_i [ create_bd_port -dir I spi0_sdo_i ]
   set spi0_sdo_o [ create_bd_port -dir O spi0_sdo_o ]
+  set xbar_rb_addr [ create_bd_port -dir O -from 31 -to 0 xbar_rb_addr ]
+  set xbar_rb_data [ create_bd_port -dir I -from 31 -to 0 xbar_rb_data ]
+  set xbar_rb_stb [ create_bd_port -dir O xbar_rb_stb ]
+  set xbar_set_addr [ create_bd_port -dir O -from 31 -to 0 xbar_set_addr ]
+  set xbar_set_data [ create_bd_port -dir O -from 31 -to 0 xbar_set_data ]
+  set xbar_set_stb [ create_bd_port -dir O xbar_set_stb ]
 
   # Create instance: axi_cpu_interconnect, and set properties
   set axi_cpu_interconnect [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_cpu_interconnect ]
   set_property -dict [ list \
-CONFIG.NUM_MI {1} \
+CONFIG.NUM_MI {2} \
  ] $axi_cpu_interconnect
+
+  # Create instance: axi_data_fifo_0, and set properties
+  set axi_data_fifo_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_data_fifo:2.1 axi_data_fifo_0 ]
+  set_property -dict [ list \
+CONFIG.PROTOCOL {AXI4} \
+ ] $axi_data_fifo_0
 
   # Create instance: axi_iic_main, and set properties
   set axi_iic_main [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_iic:2.0 axi_iic_main ]
+
+  # Create instance: axi_protocol_converter_0, and set properties
+  set axi_protocol_converter_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_protocol_converter:2.1 axi_protocol_converter_0 ]
 
   # Create instance: sys_concat_intc, and set properties
   set sys_concat_intc [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 sys_concat_intc ]
@@ -208,8 +238,8 @@ CONFIG.PCW_ACT_CAN_PERIPHERAL_FREQMHZ {10.000000} \
 CONFIG.PCW_ACT_DCI_PERIPHERAL_FREQMHZ {10.158730} \
 CONFIG.PCW_ACT_ENET0_PERIPHERAL_FREQMHZ {10.000000} \
 CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {10.000000} \
-CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {100.000000} \
-CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {200.000000} \
+CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {50.000000} \
+CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {40.000000} \
 CONFIG.PCW_ACT_FPGA2_PERIPHERAL_FREQMHZ {10.000000} \
 CONFIG.PCW_ACT_FPGA3_PERIPHERAL_FREQMHZ {10.000000} \
 CONFIG.PCW_ACT_PCAP_PERIPHERAL_FREQMHZ {200.000000} \
@@ -235,8 +265,7 @@ CONFIG.PCW_CAN_PERIPHERAL_CLKSRC {IO PLL} \
 CONFIG.PCW_CAN_PERIPHERAL_DIVISOR0 {1} \
 CONFIG.PCW_CAN_PERIPHERAL_DIVISOR1 {1} \
 CONFIG.PCW_CAN_PERIPHERAL_FREQMHZ {100} \
-CONFIG.PCW_CLK0_FREQ {100000000} \
-CONFIG.PCW_CLK1_FREQ {200000000} \
+CONFIG.PCW_CLK1_FREQ {40000000} \
 CONFIG.PCW_CLK2_FREQ {10000000} \
 CONFIG.PCW_CLK3_FREQ {10000000} \
 CONFIG.PCW_CPU_CPU_6X4X_MAX_RANGE {667} \
@@ -297,6 +326,7 @@ CONFIG.PCW_ENET_RESET_POLARITY {Active Low} \
 CONFIG.PCW_ENET_RESET_SELECT {<Select>} \
 CONFIG.PCW_EN_4K_TIMER {0} \
 CONFIG.PCW_EN_CLK1_PORT {1} \
+CONFIG.PCW_EN_CLK2_PORT {1} \
 CONFIG.PCW_EN_EMIO_GPIO {1} \
 CONFIG.PCW_EN_EMIO_SPI0 {1} \
 CONFIG.PCW_EN_QSPI {1} \
@@ -306,13 +336,13 @@ CONFIG.PCW_EN_UART1 {1} \
 CONFIG.PCW_EN_USB0 {1} \
 CONFIG.PCW_FCLK0_PERIPHERAL_CLKSRC {IO PLL} \
 CONFIG.PCW_FCLK0_PERIPHERAL_DIVISOR0 {5} \
-CONFIG.PCW_FCLK0_PERIPHERAL_DIVISOR1 {2} \
+CONFIG.PCW_FCLK0_PERIPHERAL_DIVISOR1 {4} \
 CONFIG.PCW_FCLK1_PERIPHERAL_CLKSRC {IO PLL} \
 CONFIG.PCW_FCLK1_PERIPHERAL_DIVISOR0 {5} \
-CONFIG.PCW_FCLK1_PERIPHERAL_DIVISOR1 {1} \
+CONFIG.PCW_FCLK1_PERIPHERAL_DIVISOR1 {5} \
 CONFIG.PCW_FCLK2_PERIPHERAL_CLKSRC {IO PLL} \
-CONFIG.PCW_FCLK2_PERIPHERAL_DIVISOR0 {1} \
-CONFIG.PCW_FCLK2_PERIPHERAL_DIVISOR1 {1} \
+CONFIG.PCW_FCLK2_PERIPHERAL_DIVISOR0 {10} \
+CONFIG.PCW_FCLK2_PERIPHERAL_DIVISOR1 {10} \
 CONFIG.PCW_FCLK3_PERIPHERAL_CLKSRC {IO PLL} \
 CONFIG.PCW_FCLK3_PERIPHERAL_DIVISOR0 {1} \
 CONFIG.PCW_FCLK3_PERIPHERAL_DIVISOR1 {1} \
@@ -320,12 +350,21 @@ CONFIG.PCW_FCLK_CLK0_BUF {TRUE} \
 CONFIG.PCW_FCLK_CLK1_BUF {TRUE} \
 CONFIG.PCW_FCLK_CLK2_BUF {FALSE} \
 CONFIG.PCW_FCLK_CLK3_BUF {FALSE} \
-CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {100.0} \
-CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ {200.0} \
-CONFIG.PCW_FPGA2_PERIPHERAL_FREQMHZ {50} \
+CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {50.0} \
+CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ {40} \
+CONFIG.PCW_FPGA2_PERIPHERAL_FREQMHZ {10} \
 CONFIG.PCW_FPGA3_PERIPHERAL_FREQMHZ {50} \
 CONFIG.PCW_FPGA_FCLK0_ENABLE {1} \
 CONFIG.PCW_FPGA_FCLK1_ENABLE {1} \
+CONFIG.PCW_FPGA_FCLK2_ENABLE {1} \
+CONFIG.PCW_FTM_CTI_IN0 {<Select>} \
+CONFIG.PCW_FTM_CTI_IN1 {<Select>} \
+CONFIG.PCW_FTM_CTI_IN2 {<Select>} \
+CONFIG.PCW_FTM_CTI_IN3 {<Select>} \
+CONFIG.PCW_FTM_CTI_OUT0 {<Select>} \
+CONFIG.PCW_FTM_CTI_OUT1 {<Select>} \
+CONFIG.PCW_FTM_CTI_OUT2 {<Select>} \
+CONFIG.PCW_FTM_CTI_OUT3 {<Select>} \
 CONFIG.PCW_GPIO_EMIO_GPIO_ENABLE {1} \
 CONFIG.PCW_GPIO_EMIO_GPIO_IO {17} \
 CONFIG.PCW_GPIO_EMIO_GPIO_WIDTH {17} \
@@ -840,6 +879,10 @@ CONFIG.PCW_USB_RESET_POLARITY {Active Low} \
 CONFIG.PCW_USB_RESET_SELECT {Share reset pin} \
 CONFIG.PCW_USE_CROSS_TRIGGER {0} \
 CONFIG.PCW_USE_FABRIC_INTERRUPT {1} \
+CONFIG.PCW_USE_S_AXI_ACP {0} \
+CONFIG.PCW_USE_S_AXI_GP0 {0} \
+CONFIG.PCW_USE_S_AXI_GP1 {0} \
+CONFIG.PCW_USE_S_AXI_HP0 {1} \
 CONFIG.PCW_USE_S_AXI_HP1 {0} \
 CONFIG.PCW_USE_S_AXI_HP2 {0} \
 CONFIG.PCW_WDT_PERIPHERAL_CLKSRC {CPU_1X} \
@@ -882,7 +925,6 @@ CONFIG.PCW_CAN_PERIPHERAL_CLKSRC.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_CAN_PERIPHERAL_DIVISOR0.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_CAN_PERIPHERAL_DIVISOR1.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_CAN_PERIPHERAL_FREQMHZ.VALUE_SRC {DEFAULT} \
-CONFIG.PCW_CLK0_FREQ.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_CLK1_FREQ.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_CLK2_FREQ.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_CLK3_FREQ.VALUE_SRC {DEFAULT} \
@@ -965,10 +1007,18 @@ CONFIG.PCW_FCLK_CLK0_BUF.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_FCLK_CLK1_BUF.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_FCLK_CLK2_BUF.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_FCLK_CLK3_BUF.VALUE_SRC {DEFAULT} \
-CONFIG.PCW_FPGA2_PERIPHERAL_FREQMHZ.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_FPGA3_PERIPHERAL_FREQMHZ.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_FPGA_FCLK0_ENABLE.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_FPGA_FCLK1_ENABLE.VALUE_SRC {DEFAULT} \
+CONFIG.PCW_FPGA_FCLK2_ENABLE.VALUE_SRC {DEFAULT} \
+CONFIG.PCW_FTM_CTI_IN0.VALUE_SRC {DEFAULT} \
+CONFIG.PCW_FTM_CTI_IN1.VALUE_SRC {DEFAULT} \
+CONFIG.PCW_FTM_CTI_IN2.VALUE_SRC {DEFAULT} \
+CONFIG.PCW_FTM_CTI_IN3.VALUE_SRC {DEFAULT} \
+CONFIG.PCW_FTM_CTI_OUT0.VALUE_SRC {DEFAULT} \
+CONFIG.PCW_FTM_CTI_OUT1.VALUE_SRC {DEFAULT} \
+CONFIG.PCW_FTM_CTI_OUT2.VALUE_SRC {DEFAULT} \
+CONFIG.PCW_FTM_CTI_OUT3.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_GPIO_EMIO_GPIO_WIDTH.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_GPIO_PERIPHERAL_ENABLE.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_I2C0_GRP_INT_ENABLE.VALUE_SRC {DEFAULT} \
@@ -1462,16 +1512,28 @@ CONFIG.PCW_WDT_WDT_IO.VALUE_SRC {DEFAULT} \
 CONFIG.C_EXT_RST_WIDTH {1} \
  ] $sys_rstgen
 
+  # Create instance: zynq_fifo_top_0, and set properties
+  set zynq_fifo_top_0 [ create_bd_cell -type ip -vlnv user.org:user:zynq_fifo_top:1.0 zynq_fifo_top_0 ]
+  set_property -dict [ list \
+CONFIG.CONFIG_BASE {0x60000000} \
+ ] $zynq_fifo_top_0
+
   # Create interface connections
   connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins axi_cpu_interconnect/S00_AXI] [get_bd_intf_pins sys_ps7/M_AXI_GP0]
   connect_bd_intf_net -intf_net axi_cpu_interconnect_M00_AXI [get_bd_intf_pins axi_cpu_interconnect/M00_AXI] [get_bd_intf_pins axi_iic_main/S_AXI]
+  connect_bd_intf_net -intf_net axi_cpu_interconnect_M01_AXI [get_bd_intf_pins axi_cpu_interconnect/M01_AXI] [get_bd_intf_pins zynq_fifo_top_0/CTL_AXI]
+  connect_bd_intf_net -intf_net axi_data_fifo_0_M_AXI [get_bd_intf_pins axi_data_fifo_0/M_AXI] [get_bd_intf_pins axi_protocol_converter_0/S_AXI]
   connect_bd_intf_net -intf_net axi_iic_main_IIC [get_bd_intf_ports iic_main] [get_bd_intf_pins axi_iic_main/IIC]
+  connect_bd_intf_net -intf_net axi_protocol_converter_0_M_AXI [get_bd_intf_pins axi_protocol_converter_0/M_AXI] [get_bd_intf_pins sys_ps7/S_AXI_HP0]
   connect_bd_intf_net -intf_net sys_ps7_DDR [get_bd_intf_ports ddr] [get_bd_intf_pins sys_ps7/DDR]
   connect_bd_intf_net -intf_net sys_ps7_FIXED_IO [get_bd_intf_ports fixed_io] [get_bd_intf_pins sys_ps7/FIXED_IO]
+  connect_bd_intf_net -intf_net zynq_fifo_top_0_DDR_AXI [get_bd_intf_pins axi_data_fifo_0/S_AXI] [get_bd_intf_pins zynq_fifo_top_0/DDR_AXI]
 
   # Create port connections
   connect_bd_net -net axi_iic_main_iic2intc_irpt [get_bd_pins axi_iic_main/iic2intc_irpt] [get_bd_pins sys_concat_intc/In15]
+  connect_bd_net -net core_rb_data_1 [get_bd_ports core_rb_data] [get_bd_pins zynq_fifo_top_0/core_rb_data]
   connect_bd_net -net gpio_i_1 [get_bd_ports gpio_i] [get_bd_pins sys_ps7/GPIO_I]
+  connect_bd_net -net h2s_tready_1 [get_bd_ports h2s_tready] [get_bd_pins zynq_fifo_top_0/h2s_tready]
   connect_bd_net -net ps_intr_00_1 [get_bd_ports ps_intr_00] [get_bd_pins sys_concat_intc/In0]
   connect_bd_net -net ps_intr_01_1 [get_bd_ports ps_intr_01] [get_bd_pins sys_concat_intc/In1]
   connect_bd_net -net ps_intr_02_1 [get_bd_ports ps_intr_02] [get_bd_pins sys_concat_intc/In2]
@@ -1486,15 +1548,18 @@ CONFIG.C_EXT_RST_WIDTH {1} \
   connect_bd_net -net ps_intr_11_1 [get_bd_ports ps_intr_11] [get_bd_pins sys_concat_intc/In11]
   connect_bd_net -net ps_intr_12_1 [get_bd_ports ps_intr_12] [get_bd_pins sys_concat_intc/In12]
   connect_bd_net -net ps_intr_13_1 [get_bd_ports ps_intr_13] [get_bd_pins sys_concat_intc/In13]
-  connect_bd_net -net ps_intr_14_1 [get_bd_ports ps_intr_14] [get_bd_pins sys_concat_intc/In14]
+  connect_bd_net -net s2h_tdata_1 [get_bd_ports s2h_tdata] [get_bd_pins zynq_fifo_top_0/s2h_tdata]
+  connect_bd_net -net s2h_tlast_1 [get_bd_ports s2h_tlast] [get_bd_pins zynq_fifo_top_0/s2h_tlast]
+  connect_bd_net -net s2h_tvalid_1 [get_bd_ports s2h_tvalid] [get_bd_pins zynq_fifo_top_0/s2h_tvalid]
   connect_bd_net -net spi0_clk_i_1 [get_bd_ports spi0_clk_i] [get_bd_pins sys_ps7/SPI0_SCLK_I]
   connect_bd_net -net spi0_csn_i_1 [get_bd_ports spi0_csn_i] [get_bd_pins sys_ps7/SPI0_SS_I]
   connect_bd_net -net spi0_sdi_i_1 [get_bd_ports spi0_sdi_i] [get_bd_pins sys_ps7/SPI0_MISO_I]
   connect_bd_net -net spi0_sdo_i_1 [get_bd_ports spi0_sdo_i] [get_bd_pins sys_ps7/SPI0_MOSI_I]
   connect_bd_net -net sys_concat_intc_dout [get_bd_pins sys_concat_intc/dout] [get_bd_pins sys_ps7/IRQ_F2P]
-  connect_bd_net -net sys_cpu_clk [get_bd_pins axi_cpu_interconnect/ACLK] [get_bd_pins axi_cpu_interconnect/M00_ACLK] [get_bd_pins axi_cpu_interconnect/S00_ACLK] [get_bd_pins axi_iic_main/s_axi_aclk] [get_bd_pins sys_ps7/FCLK_CLK0] [get_bd_pins sys_ps7/M_AXI_GP0_ACLK] [get_bd_pins sys_rstgen/slowest_sync_clk]
-  connect_bd_net -net sys_cpu_reset [get_bd_pins sys_rstgen/peripheral_reset]
-  connect_bd_net -net sys_cpu_resetn [get_bd_pins axi_cpu_interconnect/ARESETN] [get_bd_pins axi_cpu_interconnect/M00_ARESETN] [get_bd_pins axi_cpu_interconnect/S00_ARESETN] [get_bd_pins axi_iic_main/s_axi_aresetn] [get_bd_pins sys_rstgen/peripheral_aresetn]
+  connect_bd_net -net sys_cpu_clk [get_bd_ports bus_clk] [get_bd_pins axi_cpu_interconnect/ACLK] [get_bd_pins axi_cpu_interconnect/M00_ACLK] [get_bd_pins axi_cpu_interconnect/M01_ACLK] [get_bd_pins axi_cpu_interconnect/S00_ACLK] [get_bd_pins axi_data_fifo_0/aclk] [get_bd_pins axi_iic_main/s_axi_aclk] [get_bd_pins axi_protocol_converter_0/aclk] [get_bd_pins sys_ps7/FCLK_CLK0] [get_bd_pins sys_ps7/M_AXI_GP0_ACLK] [get_bd_pins sys_ps7/S_AXI_HP0_ACLK] [get_bd_pins sys_rstgen/slowest_sync_clk] [get_bd_pins zynq_fifo_top_0/clk]
+  connect_bd_net -net sys_cpu_resetn [get_bd_pins axi_cpu_interconnect/ARESETN] [get_bd_pins axi_cpu_interconnect/M00_ARESETN] [get_bd_pins axi_cpu_interconnect/M01_ARESETN] [get_bd_pins axi_cpu_interconnect/S00_ARESETN] [get_bd_pins axi_data_fifo_0/aresetn] [get_bd_pins axi_iic_main/s_axi_aresetn] [get_bd_pins axi_protocol_converter_0/aresetn] [get_bd_pins sys_rstgen/peripheral_aresetn]
+  connect_bd_net -net sys_ps7_FCLK_CLK1 [get_bd_ports clk_40mhz] [get_bd_pins sys_ps7/FCLK_CLK1]
+  connect_bd_net -net sys_ps7_FCLK_CLK2 [get_bd_ports clk_10mhz] [get_bd_pins sys_ps7/FCLK_CLK2]
   connect_bd_net -net sys_ps7_FCLK_RESET0_N [get_bd_pins sys_ps7/FCLK_RESET0_N] [get_bd_pins sys_rstgen/ext_reset_in]
   connect_bd_net -net sys_ps7_GPIO_O [get_bd_ports gpio_o] [get_bd_pins sys_ps7/GPIO_O]
   connect_bd_net -net sys_ps7_GPIO_T [get_bd_ports gpio_t] [get_bd_pins sys_ps7/GPIO_T]
@@ -1503,9 +1568,26 @@ CONFIG.C_EXT_RST_WIDTH {1} \
   connect_bd_net -net sys_ps7_SPI0_SS1_O [get_bd_ports spi0_csn_1_o] [get_bd_pins sys_ps7/SPI0_SS1_O]
   connect_bd_net -net sys_ps7_SPI0_SS2_O [get_bd_ports spi0_csn_2_o] [get_bd_pins sys_ps7/SPI0_SS2_O]
   connect_bd_net -net sys_ps7_SPI0_SS_O [get_bd_ports spi0_csn_0_o] [get_bd_pins sys_ps7/SPI0_SS_O]
+  connect_bd_net -net sys_rstgen_peripheral_reset [get_bd_ports bus_rst] [get_bd_pins sys_rstgen/peripheral_reset] [get_bd_pins zynq_fifo_top_0/rst]
+  connect_bd_net -net xbar_rb_data_1 [get_bd_ports xbar_rb_data] [get_bd_pins zynq_fifo_top_0/xbar_rb_data]
+  connect_bd_net -net zynq_fifo_top_0_core_set_addr [get_bd_ports core_set_addr] [get_bd_pins zynq_fifo_top_0/core_set_addr]
+  connect_bd_net -net zynq_fifo_top_0_core_set_data [get_bd_ports core_set_data] [get_bd_pins zynq_fifo_top_0/core_set_data]
+  connect_bd_net -net zynq_fifo_top_0_core_set_stb [get_bd_ports core_set_stb] [get_bd_pins zynq_fifo_top_0/core_set_stb]
+  connect_bd_net -net zynq_fifo_top_0_event_irq [get_bd_pins sys_concat_intc/In14] [get_bd_pins zynq_fifo_top_0/event_irq]
+  connect_bd_net -net zynq_fifo_top_0_h2s_tdata [get_bd_ports h2s_tdata] [get_bd_pins zynq_fifo_top_0/h2s_tdata]
+  connect_bd_net -net zynq_fifo_top_0_h2s_tlast [get_bd_ports h2s_tlast] [get_bd_pins zynq_fifo_top_0/h2s_tlast]
+  connect_bd_net -net zynq_fifo_top_0_h2s_tvalid [get_bd_ports h2s_tvalid] [get_bd_pins zynq_fifo_top_0/h2s_tvalid]
+  connect_bd_net -net zynq_fifo_top_0_s2h_tready [get_bd_ports s2h_tready] [get_bd_pins zynq_fifo_top_0/s2h_tready]
+  connect_bd_net -net zynq_fifo_top_0_xbar_rb_addr [get_bd_ports xbar_rb_addr] [get_bd_pins zynq_fifo_top_0/xbar_rb_addr]
+  connect_bd_net -net zynq_fifo_top_0_xbar_rb_stb [get_bd_ports xbar_rb_stb] [get_bd_pins zynq_fifo_top_0/xbar_rb_stb]
+  connect_bd_net -net zynq_fifo_top_0_xbar_set_addr [get_bd_ports xbar_set_addr] [get_bd_pins zynq_fifo_top_0/xbar_set_addr]
+  connect_bd_net -net zynq_fifo_top_0_xbar_set_data [get_bd_ports xbar_set_data] [get_bd_pins zynq_fifo_top_0/xbar_set_data]
+  connect_bd_net -net zynq_fifo_top_0_xbar_set_stb [get_bd_ports xbar_set_stb] [get_bd_pins zynq_fifo_top_0/xbar_set_stb]
 
   # Create address segments
   create_bd_addr_seg -range 0x00001000 -offset 0x41600000 [get_bd_addr_spaces sys_ps7/Data] [get_bd_addr_segs axi_iic_main/S_AXI/Reg] SEG_data_axi_iic_main
+  create_bd_addr_seg -range 0x20000000 -offset 0x60000000 [get_bd_addr_spaces sys_ps7/Data] [get_bd_addr_segs zynq_fifo_top_0/CTL_AXI/reg0] SEG_zynq_fifo_top_0_reg0
+  create_bd_addr_seg -range 0x20000000 -offset 0x00000000 [get_bd_addr_spaces zynq_fifo_top_0/DDR_AXI] [get_bd_addr_segs sys_ps7/S_AXI_HP0/HP0_DDR_LOWOCM] SEG_sys_ps7_HP0_DDR_LOWOCM
 
 
   # Restore current instance
@@ -1522,4 +1604,6 @@ CONFIG.C_EXT_RST_WIDTH {1} \
 
 create_root_design ""
 
+
+common::send_msg_id "BD_TCL-1000" "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 

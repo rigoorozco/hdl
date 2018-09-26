@@ -110,6 +110,7 @@ clean:
 	$(MAKE) -C xilinx/axi_dacfifo clean
 	$(MAKE) -C xilinx/axi_xcvrlb clean
 	$(MAKE) -C xilinx/util_adxcvr clean
+	$(MAKE) -C ettus-fpga/zynq_fifo clean
 
 	$(MAKE) -C interfaces clean
 
@@ -216,6 +217,7 @@ lib:
 	$(MAKE) -C xilinx/axi_dacfifo
 	$(MAKE) -C xilinx/axi_xcvrlb
 	$(MAKE) -C xilinx/util_adxcvr
+	$(MAKE) -C ettus-fpga/zynq_fifo
 
 	$(MAKE) -C interfaces
 

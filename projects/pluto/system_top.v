@@ -65,15 +65,15 @@ module system_top (
 
   inout           gpio_bd,
 
-  // input           rx_clk_in,
-  // input           rx_frame_in,
-  // input   [11:0]  rx_data_in,
-  // output          tx_clk_out,
-  // output          tx_frame_out,
-  // output  [11:0]  tx_data_out,
+  input           rx_clk_in,
+  input           rx_frame_in,
+  input   [11:0]  rx_data_in,
+  output          tx_clk_out,
+  output          tx_frame_out,
+  output  [11:0]  tx_data_out,
 
-  // output          enable,
-  // output          txnrx,
+  output          enable,
+  output          txnrx,
   input           clk_out,
 
   inout           gpio_resetb,
@@ -91,7 +91,77 @@ module system_top (
   wire    [16:0]  gpio_i;
   wire    [16:0]  gpio_o;
   wire    [16:0]  gpio_t;
-
+  
+  wire            bus_clk;
+  wire            bus_rst;
+  wire            radio_clk;
+  wire            radio_rst;
+  
+  wire    [63:0]  h2s_tdata;
+  wire            h2s_tlast;
+  wire            h2s_tvalid;
+  wire            h2s_tready;
+  
+  wire    [63:0]  s2h_tdata;
+  wire            s2h_tlast;
+  wire            s2h_tvalid;
+  wire            s2h_tready;
+  
+  wire    [31:0]  core_set_data;
+  wire    [7:0]   core_set_addr;
+  wire            core_set_stb;
+  wire    [31:0]  core_rb_data;
+  
+  wire    [31:0]  xbar_set_data;
+  wire    [31:0]  xbar_set_addr;
+  wire            xbar_set_stb;
+  
+  wire    [31:0]  xbar_rb_data;
+  wire    [31:0]  xbar_rb_addr;
+  wire            xbar_rb_stb;
+  
+  wire            mimo;
+  wire            codec_arst;
+  
+  wire    [11:0]  rx_i0, rx_q0, rx_i1, rx_q1, tx_i0, tx_q0, tx_i1, tx_q1;
+  wire    [31:0]  rx_data0, rx_data1, tx_data0, tx_data1;
+  
+  assign          rx_data0      = {rx_i0,4'd0,rx_q0,4'd0};
+  assign          rx_data1      = {rx_i1,4'd0,rx_q1,4'd0};
+  assign          {tx_i0,tx_q0} = {tx_data0[31:20],tx_data0[15:4]};
+  assign          {tx_i1,tx_q1} = {tx_data1[31:20],tx_data1[15:4]};
+  
+  wire            rx_stb, tx_stb;
+  
+  e310_io e310_io (
+    .areset(codec_arst),
+    .mimo(mimo),
+    // Baseband sample interface
+    .radio_clk(radio_clk),
+    .radio_rst(radio_rst),
+    .rx_i0(rx_i0),
+    .rx_q0(rx_q0),
+    .rx_i1(rx_i1),
+    .rx_q1(rx_q1),
+    .rx_stb(rx_stb),
+    .tx_i0(tx_i0),
+    .tx_q0(tx_q0),
+    .tx_i1(tx_i1),
+    .tx_q1(tx_q1),
+    .tx_stb(tx_stb),
+    // AD9361 interface
+    .rx_clk(rx_clk_in),      /*CAT_DATA_CLK*/
+    .rx_frame(rx_frame_in),  /*CAT_RX_FRAME*/
+    .rx_data(rx_data_in),    /*CAT_P0_D*/
+    .tx_clk(tx_clk_out),     /*CAT_FB_CLK*/
+    .tx_frame(tx_frame_out), /*CAT_TX_FRAME*/
+    .tx_data(tx_data_out));  /*CAT_P1_D*/
+    
+  assign enable = 1'b1;
+  assign txnrx  = 1'b1;
+  
+  wire       pps, clk_pps, clk_tcxo;
+  
   assign gpio_i[16:15] = gpio_o[16:15];
   // instantiations
 
@@ -121,7 +191,6 @@ module system_top (
     .ddr_ras_n (ddr_ras_n),
     .ddr_reset_n (ddr_reset_n),
     .ddr_we_n (ddr_we_n),
-    // .enable (enable),
     .fixed_io_ddr_vrn (fixed_io_ddr_vrn),
     .fixed_io_ddr_vrp (fixed_io_ddr_vrp),
     .fixed_io_mio (fixed_io_mio),
@@ -147,10 +216,28 @@ module system_top (
     .ps_intr_11 (1'b0),
     .ps_intr_12 (1'b0),
     .ps_intr_13 (1'b0),
-    .ps_intr_14 (1'b0),
-    // .rx_clk_in (rx_clk_in),
-    // .rx_data_in (rx_data_in),
-    // .rx_frame_in (rx_frame_in),
+    .bus_clk(bus_clk),
+    .bus_rst(bus_rst),
+    .clk_40mhz(clk_tcxo),
+    .clk_10mhz(clk_pps),
+    .h2s_tdata(h2s_tdata),
+    .h2s_tlast(h2s_tlast),
+    .h2s_tvalid(h2s_tvalid),
+    .h2s_tready(h2s_tready),
+    .s2h_tdata(s2h_tdata),
+    .s2h_tlast(s2h_tlast),
+    .s2h_tvalid(s2h_tvalid),
+    .s2h_tready(s2h_tready),
+    .core_set_data(core_set_data),
+    .core_set_addr(core_set_addr),
+    .core_set_stb(core_set_stb),
+    .core_rb_data(core_rb_data),
+    .xbar_set_data(xbar_set_data),
+    .xbar_set_addr(xbar_set_addr),
+    .xbar_set_stb(xbar_set_stb),
+    .xbar_rb_data(xbar_rb_data),
+    .xbar_rb_addr(xbar_rb_addr),
+    .xbar_rb_stb(xbar_rb_stb),
     .spi0_clk_i (1'b0),
     .spi0_clk_o (spi_clk),
     .spi0_csn_0_o (spi_csn),
@@ -160,12 +247,92 @@ module system_top (
     .spi0_sdi_i (spi_miso),
     .spi0_sdo_i (1'b0),
     .spi0_sdo_o (spi_mosi));
-    // .tx_clk_out (tx_clk_out),
-    // .tx_data_out (tx_data_out),
-    // .tx_frame_out (tx_frame_out),
-    // .txnrx (txnrx),
-    // .up_enable (gpio_o[15]),
-    // .up_txnrx (gpio_o[16]));
+    
+  wire [1:0] pps_select;
+  wire is_10meg, is_pps, reflck, plllck; // reference status bits
+  
+  ppsloop ppslp (
+    .reset(1'b0),
+    .xoclk(clk_tcxo), .ppsgps(clk_pps), .ppsext(clk_pps),
+    .refsel(pps_select),
+    .lpps(pps),
+    .is10meg(is_10meg), .ispps(is_pps), .reflck(reflck), .plllck(plllck),
+    .sclk(), .mosi(), .sync_n(),
+    .dac_dflt(16'h7fff));
+    
+  reg [3:0] tcxo_status, st_rsync;
+
+  always @(posedge bus_clk) begin
+    /* status signals originate from other than the bus_clk domain so re-sync
+       before passing to e300_core
+     */
+    st_rsync <= {plllck, is_10meg, is_pps, reflck};
+    tcxo_status <= st_rsync;
+  end
+
+  e310_core e310_core0 (
+    .bus_clk(bus_clk),
+    .bus_rst(bus_rst),
+
+    .h2s_tdata(h2s_tdata),
+    .h2s_tlast(h2s_tlast),
+    .h2s_tvalid(h2s_tvalid),
+    .h2s_tready(h2s_tready),
+
+    .s2h_tdata(s2h_tdata),
+    .s2h_tlast(s2h_tlast),
+    .s2h_tvalid(s2h_tvalid),
+    .s2h_tready(s2h_tready),
+
+    .radio_clk(radio_clk),
+    .radio_rst(radio_rst),
+   
+    .rx_stb0(rx_stb),
+    .rx_data0(rx_data0),
+    .tx_stb0(tx_stb),
+    .tx_data0(tx_data0),
+    .rx_stb1(rx_stb),
+    .rx_data1(rx_data1),
+    .tx_stb1(tx_stb),
+    .tx_data1(tx_data1),
+
+    // Unused
+    .db_gpio0(),
+    .db_gpio1(),
+    .leds0(),
+    .leds1(),
+
+    // Unused
+    .fp_gpio_in0(6'd0),
+    .fp_gpio_out0(),
+    .fp_gpio_ddr0(),
+    
+    // Unused
+    .spi_sen(),
+    .spi_sclk(),
+    .spi_mosi(),
+    .spi_miso(1'd0),
+
+    .set_data(core_set_data),
+    .set_addr(core_set_addr),
+    .set_stb(core_set_stb),
+    .rb_data(core_rb_data),
+
+    .xbar_set_data(xbar_set_data),
+    .xbar_set_addr(xbar_set_addr),
+    .xbar_set_stb(xbar_set_stb),
+    .xbar_rb_data(xbar_rb_data),
+    .xbar_rb_addr(xbar_rb_addr),
+    .xbar_rb_stb(xbar_rb_stb),
+
+    .pps_select(pps_select),
+    .pps(pps),
+    .tcxo_status(tcxo_status),
+
+   .lock_signals(), /*CAT_CTRL_OUT[7:6]*/
+   .mimo(mimo),
+   .codec_arst(codec_arst),
+   .debug());
 
 endmodule
 
